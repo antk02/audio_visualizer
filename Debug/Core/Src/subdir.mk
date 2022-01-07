@@ -6,6 +6,9 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../Core/Src/main.c \
+../Core/Src/ssd1306.c \
+../Core/Src/ssd1306_fonts.c \
+../Core/Src/ssd1306_tests.c \
 ../Core/Src/stm32_fix_fft.c \
 ../Core/Src/stm32f1xx_hal_msp.c \
 ../Core/Src/stm32f1xx_it.c \
@@ -15,6 +18,9 @@ C_SRCS += \
 
 OBJS += \
 ./Core/Src/main.o \
+./Core/Src/ssd1306.o \
+./Core/Src/ssd1306_fonts.o \
+./Core/Src/ssd1306_tests.o \
 ./Core/Src/stm32_fix_fft.o \
 ./Core/Src/stm32f1xx_hal_msp.o \
 ./Core/Src/stm32f1xx_it.o \
@@ -24,6 +30,9 @@ OBJS += \
 
 C_DEPS += \
 ./Core/Src/main.d \
+./Core/Src/ssd1306.d \
+./Core/Src/ssd1306_fonts.d \
+./Core/Src/ssd1306_tests.d \
 ./Core/Src/stm32_fix_fft.d \
 ./Core/Src/stm32f1xx_hal_msp.d \
 ./Core/Src/stm32f1xx_it.d \

@@ -42,6 +42,9 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define FFT_LEN 256
+#define HALF_FFT_LEN 128
+#define LOG_2_FFT_LEN 8
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -62,14 +65,16 @@ UART_HandleTypeDef huart2;
 uint16_t adc_data = 0;
 uint8_t uart_message[32] = {0};
 
-int16_t real[128] = {0};
-int16_t imag[128] = {0};
+int16_t real[FFT_LEN] = {0};
+int16_t imag[FFT_LEN] = {0};
 
 //uint16_t output[256] = {0};
 //uint16_t mag_output[256] = {0};
 
 uint16_t max = 0;
 uint16_t index_max = 0;
+
+uint16_t new_array[HALF_FFT_LEN];
 
 /* USER CODE END PV */
 
@@ -86,6 +91,23 @@ void UART2_Print(uint8_t* uart_message);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+void loop() {
+	// Blue button pressed - repeat the test
+    if(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == GPIO_PIN_RESET) {
+		// Indicate that test is running
+		//HAL_GPIO_WritePin(I2C_Led_GPIO_Port, I2C_Led_Pin, GPIO_PIN_SET);
+
+		ssd1306_TestAll();
+
+		//HAL_GPIO_WritePin(SPI_Led_GPIO_Port, SPI_Led_Pin, GPIO_PIN_RESET);
+		//HAL_GPIO_WritePin(I2C_Led_GPIO_Port, I2C_Led_Pin, GPIO_PIN_RESET);
+    }
+
+	// Blink an LED
+	//HAL_GPIO_TogglePin(I2C_Led_GPIO_Port, I2C_Led_Pin);
+	HAL_Delay(150);
+}
 
 /* USER CODE END 0 */
 
@@ -135,7 +157,7 @@ int main(void)
     /*---------------------Generacja tablicy probek------------------------*/
     int freq = 1000;
 
-    for(int i=0; i<128; i++)
+    for(int i=0; i < FFT_LEN; i++)
     {
         real[i] = (int16_t) 1000*sin(2*PI*freq*i*0.00001) +
                                       800*sin(2*PI*2*freq*i*0.00001) +
@@ -149,6 +171,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
+	  //loop();
 
 	  //sprintf((char*)uart_message, "U: %d\n", (uint8_t)adc_data);
 	  //UART2_Print(uart_message);
@@ -164,41 +188,61 @@ int main(void)
 	  //	 real[i] = adc_data;
 	  //}
 
-	  //UART2_Print("[");
-	  for(int i = 0; i < 128; i++)
+	  UART2_Print("[");
+
+	  for(int i = 0; i < FFT_LEN; i++)
 	  {
 	   	  sprintf(text, "%d, ", real[i]);
 	   	  UART2_Print(text);
 	  }
 	  UART2_Print(" ]\n");
 
-	  fix_fft(real, imag, 7, 0);
+	  fix_fft(real, imag, LOG_2_FFT_LEN, 0);
+
 
 	  //sprintf(text, "%c ", "[");
 	  UART2_Print("[");
 
-	  for(int i = 0; i < 64; i++)
+	  for(int i = 0; i < HALF_FFT_LEN; i++)
 	  {
 	  	  sprintf(text, "%d,", real[i]);
 	  	  UART2_Print(text);
 	  }
 
-	  //sprintf(text, " %c", "]");
-	  //UART2_Print(" ]\n");
+	  sprintf(text, " %c", "]");
+	  UART2_Print(" ]\n");
 
-	  for (unsigned int i = 0; i < N64; i++) {
-
-	      if (real[i] > max) {
-	         max = array[i];
+	  for (int i = 0; i < HALF_FFT_LEN; i++)
+	  {
+	      if (real[i] > max)
+	      {
+	         max = real[i];
 	      }
 	  }
 
-	  UART2_Print("\n");
+	  //UART2_Print("\n");
 
-	  for(int i = 0; i < 64; i++)
+	  for(int i = 0; i < HALF_FFT_LEN; i++)
 	  {
-		  ssd1306_Line(i, 0, i, 32*(real[i]/max), White);
+		  new_array[i] = abs((int)(64*real[i]/max));
 	  }
+
+	  UART2_Print(":)[");
+
+	 	  for(int i = 0; i < HALF_FFT_LEN; i++)
+	 	  {
+	 	  	  sprintf(text, "%d,", new_array[i]);
+	 	  	  UART2_Print(text);
+	 	  }
+
+	 	  sprintf(text, " %c", "]");
+	 	  UART2_Print(" ]\n");
+
+	  for(int i = 0; i < HALF_FFT_LEN; i++)
+	  {
+		  ssd1306_Line(i, 64-new_array[i], i, 64, White);
+	  }
+	  ssd1306_UpdateScreen();
 
 	  while(1);
 	  //HAL_UART_Transmit(&huart2, "[", 1, 10);
