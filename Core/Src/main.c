@@ -58,11 +58,14 @@ DMA_HandleTypeDef hdma_adc1;
 
 I2C_HandleTypeDef hi2c1;
 
+TIM_HandleTypeDef htim3;
+
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 
-uint16_t adc_data = 0;
+//uint16_t adc_data = 0;
+int16_t adc_data[FFT_LEN] = {0};
 uint8_t uart_message[32] = {0};
 
 int16_t real[FFT_LEN] = {0};
@@ -76,6 +79,11 @@ uint16_t index_max = 0;
 
 uint16_t new_array[HALF_FFT_LEN];
 
+char text[16];
+
+uint32_t sum=0;
+uint16_t mean=0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -85,6 +93,7 @@ static void MX_USART2_UART_Init(void);
 static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_I2C1_Init(void);
+static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 void UART2_Print(uint8_t* uart_message);
 /* USER CODE END PFP */
@@ -143,26 +152,26 @@ int main(void)
   MX_DMA_Init();
   MX_ADC1_Init();
   MX_I2C1_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 
-  	//arm_rfft_instance_f32 S;
-    //arm_cfft_instance_f32 S_CFFT;
+  	HAL_TIM_Base_Start(&htim3);
+    HAL_ADC_Start_DMA(&hadc1, (int16_t*) adc_data, FFT_LEN);
+  	//HAL_ADC_Start_DMA(&hadc1, &adc_data, 2);
+    ssd1306_Init();
 
-    //arm_rfft_init_f32(&S, &S_CFFT, 128, 0, 1);
-
-    HAL_ADC_Start_DMA(&hadc1, &adc_data, 2);
-
-    HAL_Delay(1000);
+    HAL_Delay(100);
 
     /*---------------------Generacja tablicy probek------------------------*/
     int freq = 1000;
-
+    /*
     for(int i=0; i < FFT_LEN; i++)
     {
         real[i] = (int16_t) 1000*sin(2*PI*freq*i*0.00001) +
                                       800*sin(2*PI*2*freq*i*0.00001) +
                                       300*sin(2*PI*3*freq*i*0.00001);
      }
+     */
     /*----------------------------------------------------------*/
 
   /* USER CODE END 2 */
@@ -172,31 +181,34 @@ int main(void)
   while (1)
   {
 
-	  //loop();
+	  //ssd1306_TestAll();
 
 	  //sprintf((char*)uart_message, "U: %d\n", (uint8_t)adc_data);
 	  //UART2_Print(uart_message);
 	  //uint8_t text[7] = "PIES\n";
 	  //UART2_Print(text);
 
-	  char text[16];
+
 	  //sprintf(text, "%d\n", adc_data);
 	  //UART2_Print(text);
-
-	  //for(int i = 0; i < 128; i++)
-	  //{
-	  //	 real[i] = adc_data;
-	  //}
-
-	  UART2_Print("[");
-
+	  /*
 	  for(int i = 0; i < FFT_LEN; i++)
 	  {
-	   	  sprintf(text, "%d, ", real[i]);
+	  	 real[i] = adc_data;
+	  }
+	  */
+
+	  //UART2_Print("[");
+	  /*
+	  for(int i = 0; i < FFT_LEN; i++)
+	  {
+	   	  sprintf(text, "%d, ", adc_data[i]);
 	   	  UART2_Print(text);
 	  }
 	  UART2_Print(" ]\n");
+	  */
 
+	  /*
 	  fix_fft(real, imag, LOG_2_FFT_LEN, 0);
 
 
@@ -243,7 +255,7 @@ int main(void)
 		  ssd1306_Line(i, 64-new_array[i], i, 64, White);
 	  }
 	  ssd1306_UpdateScreen();
-
+	*/
 	  while(1);
 	  //HAL_UART_Transmit(&huart2, "[", 1, 10);
 
@@ -321,9 +333,9 @@ static void MX_ADC1_Init(void)
   */
   hadc1.Instance = ADC1;
   hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
-  hadc1.Init.ContinuousConvMode = ENABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
-  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T3_TRGO;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc1.Init.NbrOfConversion = 1;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
@@ -376,6 +388,51 @@ static void MX_I2C1_Init(void)
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
+
+}
+
+/**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+
+  /* USER CODE END TIM3_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 1499;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 1;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+  /* USER CODE END TIM3_Init 2 */
 
 }
 
@@ -472,6 +529,72 @@ void UART2_Print(uint8_t* uart_message)
 	HAL_UART_Transmit(&huart2, uart_message, strlen((char*)uart_message), 30);
 
 }
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+{
+	/*for(int i = 0; i < FFT_LEN; i++)
+	{
+		sprintf(text, "%d, ", adc_data[i]);
+		UART2_Print(text);
+	}
+	UART2_Print(" ]\n");*/
+
+	ssd1306_Fill(Black);
+
+	sum = 0;
+	mean = 0;
+
+	int16_t data[FFT_LEN] = {0};
+
+	for(int i = 0; i < FFT_LEN; i++)
+	{
+		data[i] = adc_data[i];
+	}
+
+	for(int i = 0; i < FFT_LEN; i++)
+	{
+		sum = sum + data[i];
+	}
+
+	mean = sum/FFT_LEN;
+	//sprintf(text, "%d, %d\n", sum, mean);
+	//UART2_Print(text);
+
+	for(int i = 0; i < FFT_LEN; i++)
+	{
+		data[i] -= mean;
+	}
+	/*
+	for(int i = 0; i < FFT_LEN; i++)
+	{
+		sprintf(text, "%d, ", data[i]);
+		UART2_Print(text);
+	}
+	*/
+	fix_fft(data, imag, LOG_2_FFT_LEN, 0);
+
+	for (int i = 0; i < HALF_FFT_LEN; i++)
+	{
+		if (data[i] > max)
+		{
+		    max = data[i];
+		}
+	}
+
+	for(int i = 0; i < HALF_FFT_LEN; i++)
+	{
+		new_array[i] = abs((int)(64*data[i]/max));
+	}
+
+	for(int i = 0; i < HALF_FFT_LEN; i++)
+	{
+		ssd1306_Line(i, 64-new_array[i], i, 64, White);
+	}
+	ssd1306_UpdateScreen();
+	// Clear screen
+
+}
+
 /* USER CODE END 4 */
 
 /**
