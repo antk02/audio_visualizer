@@ -157,7 +157,6 @@ int main(void)
 
   	HAL_TIM_Base_Start(&htim3);
     HAL_ADC_Start_DMA(&hadc1, (int16_t*) adc_data, FFT_LEN);
-  	//HAL_ADC_Start_DMA(&hadc1, &adc_data, 2);
     ssd1306_Init();
 
     HAL_Delay(100);
@@ -346,7 +345,7 @@ static void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_0;
   sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_28CYCLES_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -410,7 +409,7 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 1499;
+  htim3.Init.Prescaler = 725;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim3.Init.Period = 1;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -532,15 +531,19 @@ void UART2_Print(uint8_t* uart_message)
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-	/*for(int i = 0; i < FFT_LEN; i++)
+	/*
+	for(int i = 0; i < FFT_LEN; i++)
 	{
 		sprintf(text, "%d, ", adc_data[i]);
 		UART2_Print(text);
 	}
-	UART2_Print(" ]\n");*/
+	UART2_Print(" ]\n");
+	*/
 
+	// Clear screen
 	ssd1306_Fill(Black);
 
+	max = 0;
 	sum = 0;
 	mean = 0;
 
@@ -553,7 +556,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 
 	for(int i = 0; i < FFT_LEN; i++)
 	{
-		sum = sum + data[i];
+		sum += data[i];
 	}
 
 	mean = sum/FFT_LEN;
@@ -564,34 +567,42 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	{
 		data[i] -= mean;
 	}
+
 	/*
+	UART2_Print("\n[");
 	for(int i = 0; i < FFT_LEN; i++)
 	{
 		sprintf(text, "%d, ", data[i]);
 		UART2_Print(text);
 	}
+	UART2_Print(" ]\n");
 	*/
+
 	fix_fft(data, imag, LOG_2_FFT_LEN, 0);
+
+
+
+	for(int i = 0; i < HALF_FFT_LEN; i++)
+	{
+		data[i] = sqrt(data[i] * data[i] + imag[i] * imag[i]);
+	}
 
 	for (int i = 0; i < HALF_FFT_LEN; i++)
 	{
-		if (data[i] > max)
-		{
-		    max = data[i];
-		}
+		if (data[i] > max) max = data[i];
 	}
 
 	for(int i = 0; i < HALF_FFT_LEN; i++)
 	{
-		new_array[i] = abs((int)(64*data[i]/max));
+		data[i] = 64*data[i]/max;
 	}
 
 	for(int i = 0; i < HALF_FFT_LEN; i++)
 	{
-		ssd1306_Line(i, 64-new_array[i], i, 64, White);
+		ssd1306_Line(i, 64-data[i], i, 64, White);
 	}
 	ssd1306_UpdateScreen();
-	// Clear screen
+
 
 }
 
