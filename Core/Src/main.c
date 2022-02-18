@@ -27,11 +27,7 @@
 #include <stdint.h>
 
 #include "ssd1306.h"
-#include "ssd1306_tests.h"
 
-//#include <math.h>
-
-#define PI 3.14
 
 /* USER CODE END Includes */
 
@@ -64,25 +60,19 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 
-//uint16_t adc_data = 0;
 int16_t adc_data[FFT_LEN] = {0};
-uint8_t uart_message[32] = {0};
+//uint8_t uart_message[32] = {0};
 
 int16_t real[FFT_LEN] = {0};
 int16_t imag[FFT_LEN] = {0};
 
-//uint16_t output[256] = {0};
-//uint16_t mag_output[256] = {0};
-
 uint16_t max = 0;
 uint16_t index_max = 0;
 
-uint16_t new_array[HALF_FFT_LEN];
+//char text[16];
 
-char text[16];
-
-uint32_t sum=0;
-uint16_t mean=0;
+uint32_t sum = 0;
+uint16_t mean = 0;
 
 /* USER CODE END PV */
 
@@ -100,23 +90,6 @@ void UART2_Print(uint8_t* uart_message);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-void loop() {
-	// Blue button pressed - repeat the test
-    if(HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == GPIO_PIN_RESET) {
-		// Indicate that test is running
-		//HAL_GPIO_WritePin(I2C_Led_GPIO_Port, I2C_Led_Pin, GPIO_PIN_SET);
-
-		ssd1306_TestAll();
-
-		//HAL_GPIO_WritePin(SPI_Led_GPIO_Port, SPI_Led_Pin, GPIO_PIN_RESET);
-		//HAL_GPIO_WritePin(I2C_Led_GPIO_Port, I2C_Led_Pin, GPIO_PIN_RESET);
-    }
-
-	// Blink an LED
-	//HAL_GPIO_TogglePin(I2C_Led_GPIO_Port, I2C_Led_Pin);
-	HAL_Delay(150);
-}
 
 /* USER CODE END 0 */
 
@@ -154,24 +127,14 @@ int main(void)
   MX_I2C1_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-
-  	HAL_TIM_Base_Start(&htim3);
-    HAL_ADC_Start_DMA(&hadc1, (int16_t*) adc_data, FFT_LEN);
-    ssd1306_Init();
-
-    HAL_Delay(100);
-
-    /*---------------------Generacja tablicy probek------------------------*/
-    int freq = 1000;
-    /*
-    for(int i=0; i < FFT_LEN; i++)
-    {
-        real[i] = (int16_t) 1000*sin(2*PI*freq*i*0.00001) +
-                                      800*sin(2*PI*2*freq*i*0.00001) +
-                                      300*sin(2*PI*3*freq*i*0.00001);
-     }
-     */
-    /*----------------------------------------------------------*/
+  //initializing display
+  ssd1306_Init();
+  HAL_Delay(10);
+  //starting timer that triggers adc
+  HAL_TIM_Base_Start(&htim3);
+  //connecting adc data to buffer via dma
+  HAL_ADC_Start_DMA(&hadc1, (int16_t*) adc_data, FFT_LEN);
+  HAL_Delay(10);
 
   /* USER CODE END 2 */
 
@@ -182,83 +145,7 @@ int main(void)
 
 	  //ssd1306_TestAll();
 
-	  //sprintf((char*)uart_message, "U: %d\n", (uint8_t)adc_data);
-	  //UART2_Print(uart_message);
-	  //uint8_t text[7] = "PIES\n";
-	  //UART2_Print(text);
-
-
-	  //sprintf(text, "%d\n", adc_data);
-	  //UART2_Print(text);
-	  /*
-	  for(int i = 0; i < FFT_LEN; i++)
-	  {
-	  	 real[i] = adc_data;
-	  }
-	  */
-
-	  //UART2_Print("[");
-	  /*
-	  for(int i = 0; i < FFT_LEN; i++)
-	  {
-	   	  sprintf(text, "%d, ", adc_data[i]);
-	   	  UART2_Print(text);
-	  }
-	  UART2_Print(" ]\n");
-	  */
-
-	  /*
-	  fix_fft(real, imag, LOG_2_FFT_LEN, 0);
-
-
-	  //sprintf(text, "%c ", "[");
-	  UART2_Print("[");
-
-	  for(int i = 0; i < HALF_FFT_LEN; i++)
-	  {
-	  	  sprintf(text, "%d,", real[i]);
-	  	  UART2_Print(text);
-	  }
-
-	  sprintf(text, " %c", "]");
-	  UART2_Print(" ]\n");
-
-	  for (int i = 0; i < HALF_FFT_LEN; i++)
-	  {
-	      if (real[i] > max)
-	      {
-	         max = real[i];
-	      }
-	  }
-
-	  //UART2_Print("\n");
-
-	  for(int i = 0; i < HALF_FFT_LEN; i++)
-	  {
-		  new_array[i] = abs((int)(64*real[i]/max));
-	  }
-
-	  UART2_Print(":)[");
-
-	 	  for(int i = 0; i < HALF_FFT_LEN; i++)
-	 	  {
-	 	  	  sprintf(text, "%d,", new_array[i]);
-	 	  	  UART2_Print(text);
-	 	  }
-
-	 	  sprintf(text, " %c", "]");
-	 	  UART2_Print(" ]\n");
-
-	  for(int i = 0; i < HALF_FFT_LEN; i++)
-	  {
-		  ssd1306_Line(i, 64-new_array[i], i, 64, White);
-	  }
-	  ssd1306_UpdateScreen();
-	*/
 	  while(1);
-	  //HAL_UART_Transmit(&huart2, "[", 1, 10);
-
-	 //HAL_UART_Transmit(&huart2, (uint8_t *)msg, sizeof(float)*Nbit*Sb, HAL_MAX_DELAY);
 
     /* USER CODE END WHILE */
 
@@ -531,15 +418,6 @@ void UART2_Print(uint8_t* uart_message)
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-	/*
-	for(int i = 0; i < FFT_LEN; i++)
-	{
-		sprintf(text, "%d, ", adc_data[i]);
-		UART2_Print(text);
-	}
-	UART2_Print(" ]\n");
-	*/
-
 	// Clear screen
 	ssd1306_Fill(Black);
 
@@ -549,61 +427,39 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 
 	int16_t data[FFT_LEN] = {0};
 
+	//saving adc samples to new array
 	for(int i = 0; i < FFT_LEN; i++)
 	{
 		data[i] = adc_data[i];
-	}
-
-	for(int i = 0; i < FFT_LEN; i++)
-	{
 		sum += data[i];
 	}
 
+	//removing dc
 	mean = sum/FFT_LEN;
-	//sprintf(text, "%d, %d\n", sum, mean);
-	//UART2_Print(text);
-
 	for(int i = 0; i < FFT_LEN; i++)
 	{
 		data[i] -= mean;
 	}
 
-	/*
-	UART2_Print("\n[");
-	for(int i = 0; i < FFT_LEN; i++)
-	{
-		sprintf(text, "%d, ", data[i]);
-		UART2_Print(text);
-	}
-	UART2_Print(" ]\n");
-	*/
-
+	//computing fft
 	fix_fft(data, imag, LOG_2_FFT_LEN, 0);
 
-
-
+	//computing absolute value of fft result and searching for max value
 	for(int i = 0; i < HALF_FFT_LEN; i++)
 	{
 		data[i] = sqrt(data[i] * data[i] + imag[i] * imag[i]);
-	}
-
-	for (int i = 0; i < HALF_FFT_LEN; i++)
-	{
 		if (data[i] > max) max = data[i];
 	}
 
+	//normalizing results to the max value and writing it to screen memory
 	for(int i = 0; i < HALF_FFT_LEN; i++)
 	{
 		data[i] = 64*data[i]/max;
-	}
-
-	for(int i = 0; i < HALF_FFT_LEN; i++)
-	{
 		ssd1306_Line(i, 64-data[i], i, 64, White);
 	}
+
+	//displaying
 	ssd1306_UpdateScreen();
-
-
 }
 
 /* USER CODE END 4 */
