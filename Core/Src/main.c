@@ -38,9 +38,11 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define FFT_LEN 256
-#define HALF_FFT_LEN 128
-#define LOG_2_FFT_LEN 8
+#define FFT_LEN (uint32_t)256
+#define HALF_FFT_LEN (uint32_t)128
+#define LOG_2_FFT_LEN (uint32_t)8
+#define UART_TIMEOUT (uint32_t)30 //timeout duration
+#define WAITING_TIME (uint32_t)10
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -61,6 +63,7 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 
 int16_t adc_data[FFT_LEN] = {0};
+int16_t data[FFT_LEN] = {0};
 //uint8_t uart_message[32] = {0};
 
 int16_t real[FFT_LEN] = {0};
@@ -86,6 +89,7 @@ static void MX_I2C1_Init(void);
 static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 void UART2_Print(uint8_t* uart_message);
+double sqrt(double arg);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -129,11 +133,13 @@ int main(void)
   /* USER CODE BEGIN 2 */
   //initializing display
   ssd1306_Init();
+  //waiting for display initialization
   HAL_Delay(10);
   //starting timer that triggers adc
   HAL_TIM_Base_Start(&htim3);
   //connecting adc data to buffer via dma
   HAL_ADC_Start_DMA(&hadc1, (int16_t*) adc_data, FFT_LEN);
+  //waiting for peripherals initialization
   HAL_Delay(10);
 
   /* USER CODE END 2 */
@@ -143,9 +149,7 @@ int main(void)
   while (1)
   {
 
-	  //ssd1306_TestAll();
-
-	  while(1);
+	//ssd1306_TestAll();
 
     /* USER CODE END WHILE */
 
@@ -412,7 +416,7 @@ static void MX_GPIO_Init(void)
 void UART2_Print(uint8_t* uart_message)
 {
 
-	HAL_UART_Transmit(&huart2, uart_message, strlen((char*)uart_message), 30);
+	HAL_UART_Transmit(&huart2, uart_message, strlen((char*)uart_message), UART_TIMEOUT);
 
 }
 
@@ -424,8 +428,6 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	max = 0;
 	sum = 0;
 	mean = 0;
-
-	int16_t data[FFT_LEN] = {0};
 
 	//saving adc samples to new array
 	for(int i = 0; i < FFT_LEN; i++)
