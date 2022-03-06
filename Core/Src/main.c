@@ -56,6 +56,7 @@ DMA_HandleTypeDef hdma_adc1;
 
 I2C_HandleTypeDef hi2c1;
 
+TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 
 UART_HandleTypeDef huart2;
@@ -64,6 +65,7 @@ UART_HandleTypeDef huart2;
 
 int16_t adc_data[FFT_LEN] = {0};
 int16_t data[FFT_LEN] = {0};
+int16_t buffer[FFT_LEN] = {0};
 //uint8_t uart_message[32] = {0};
 
 int16_t real[FFT_LEN] = {0};
@@ -77,6 +79,8 @@ uint16_t index_max = 0;
 uint32_t sum = 0;
 uint16_t mean = 0;
 
+uint32_t interrupt_flag = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -87,6 +91,7 @@ static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_TIM3_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 void UART2_Print(uint8_t* uart_message);
 double sqrt(double arg);
@@ -130,6 +135,7 @@ int main(void)
   MX_ADC1_Init();
   MX_I2C1_Init();
   MX_TIM3_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   //initializing display
   ssd1306_Init();
@@ -137,6 +143,8 @@ int main(void)
   HAL_Delay(10);
   //starting timer that triggers adc
   HAL_TIM_Base_Start(&htim3);
+  //starting timer that updates display
+  HAL_TIM_Base_Start_IT(&htim2);
   //connecting adc data to buffer via dma
   HAL_ADC_Start_DMA(&hadc1, (int16_t*) adc_data, FFT_LEN);
   //waiting for peripherals initialization
@@ -154,6 +162,46 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+	if(interrupt_flag)
+	{
+		ssd1306_Fill(Black);
+
+		max = 0;
+		sum = 0;
+		mean = 0;
+
+		for(int i = 0; i < FFT_LEN; i++)
+		{
+			buffer[i] = data[i];
+			sum += buffer[i];
+		}
+		//removing dc
+		mean = sum/FFT_LEN;
+		for(int i = 0; i < FFT_LEN; i++)
+		{
+			buffer[i] -= mean;
+		}
+		//computing fft
+		fix_fft(buffer, imag, LOG_2_FFT_LEN, 0);
+		//computing absolute value of fft result and searching for max value
+		for(int i = 0; i < HALF_FFT_LEN; i++)
+		{
+			buffer[i] = sqrt(buffer[i] * buffer[i] + imag[i] * imag[i]);
+			if (buffer[i] > max) max = buffer[i];
+		}
+		//normalizing results to the max value and writing it to screen memory
+		for(int i = 0; i < HALF_FFT_LEN; i++)
+		{
+			buffer[i] = 64*buffer[i]/max;
+			ssd1306_Line(i, 64-buffer[i], i, 64, White);
+		}
+		//displaying
+		ssd1306_UpdateScreen();
+		//clearing interrupt flag
+		interrupt_flag = 0;
+	}
+
   }
   /* USER CODE END 3 */
 }
@@ -278,6 +326,51 @@ static void MX_I2C1_Init(void)
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
+
+}
+
+/**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 63999;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 199;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
 
 }
 
@@ -422,12 +515,12 @@ void UART2_Print(uint8_t* uart_message)
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
+	//set interrupt flag
+	interrupt_flag = 1;
 	// Clear screen
-	ssd1306_Fill(Black);
+	//ssd1306_Fill(Black);
 
-	max = 0;
-	sum = 0;
-	mean = 0;
+
 
 	//saving adc samples to new array
 	for(int i = 0; i < FFT_LEN; i++)
@@ -435,35 +528,50 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 		data[i] = adc_data[i];
 		sum += data[i];
 	}
-
+	/*
 	//removing dc
 	mean = sum/FFT_LEN;
 	for(int i = 0; i < FFT_LEN; i++)
 	{
 		data[i] -= mean;
 	}
-
+	*/
 	//computing fft
-	fix_fft(data, imag, LOG_2_FFT_LEN, 0);
-
+	//fix_fft(data, imag, LOG_2_FFT_LEN, 0);
+	/*
 	//computing absolute value of fft result and searching for max value
 	for(int i = 0; i < HALF_FFT_LEN; i++)
 	{
 		data[i] = sqrt(data[i] * data[i] + imag[i] * imag[i]);
 		if (data[i] > max) max = data[i];
 	}
-
+	*/
+	/*
 	//normalizing results to the max value and writing it to screen memory
 	for(int i = 0; i < HALF_FFT_LEN; i++)
 	{
 		data[i] = 64*data[i]/max;
 		ssd1306_Line(i, 64-data[i], i, 64, White);
 	}
-
+	*/
 	//displaying
-	ssd1306_UpdateScreen();
+	//ssd1306_UpdateScreen();
 }
-
+/*
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  if(htim == &htim2)
+  {
+	  ssd1306_Fill(Black);
+	  for(int i = 0; i < HALF_FFT_LEN; i++)
+	  {
+	  	buffer[i] = 64*buffer[i]/max;
+	  	ssd1306_Line(i, 64-buffer[i], i, 64, White);
+	  }
+	  ssd1306_UpdateScreen();
+  }
+}
+*/
 /* USER CODE END 4 */
 
 /**
