@@ -1,2 +1,0 @@
-stm32_fix_fft.c:151:9:FIX_MPY	24	static
-stm32_fix_fft.c:168:9:fix_fft	88	static

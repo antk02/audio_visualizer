@@ -141,9 +141,7 @@ int main(void)
   ssd1306_Init();
   //waiting for display initialization
   HAL_Delay(10);
-  //starting timer that triggers adc
-  HAL_TIM_Base_Start(&htim3);
-  //starting timer that updates display
+  //starting timer which triggerssampling timer (TIM3)
   HAL_TIM_Base_Start_IT(&htim2);
   //connecting adc data to buffer via dma
   HAL_ADC_Start_DMA(&hadc1, (int16_t*) adc_data, FFT_LEN);
@@ -165,6 +163,7 @@ int main(void)
 
 	if(interrupt_flag)
 	{
+		//clear screen
 		ssd1306_Fill(Black);
 
 		max = 0;
@@ -198,6 +197,8 @@ int main(void)
 		}
 		//displaying
 		ssd1306_UpdateScreen();
+		//stop sampling timer
+		HAL_TIM_Base_Stop(&htim3);
 		//clearing interrupt flag
 		interrupt_flag = 0;
 	}
@@ -397,7 +398,7 @@ static void MX_TIM3_Init(void)
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim3.Init.Period = 1;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
   {
     Error_Handler();
@@ -517,61 +518,24 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
 	//set interrupt flag
 	interrupt_flag = 1;
-	// Clear screen
-	//ssd1306_Fill(Black);
-
-
-
 	//saving adc samples to new array
 	for(int i = 0; i < FFT_LEN; i++)
 	{
 		data[i] = adc_data[i];
 		sum += data[i];
 	}
-	/*
-	//removing dc
-	mean = sum/FFT_LEN;
-	for(int i = 0; i < FFT_LEN; i++)
-	{
-		data[i] -= mean;
-	}
-	*/
-	//computing fft
-	//fix_fft(data, imag, LOG_2_FFT_LEN, 0);
-	/*
-	//computing absolute value of fft result and searching for max value
-	for(int i = 0; i < HALF_FFT_LEN; i++)
-	{
-		data[i] = sqrt(data[i] * data[i] + imag[i] * imag[i]);
-		if (data[i] > max) max = data[i];
-	}
-	*/
-	/*
-	//normalizing results to the max value and writing it to screen memory
-	for(int i = 0; i < HALF_FFT_LEN; i++)
-	{
-		data[i] = 64*data[i]/max;
-		ssd1306_Line(i, 64-data[i], i, 64, White);
-	}
-	*/
-	//displaying
-	//ssd1306_UpdateScreen();
+
 }
-/*
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
   if(htim == &htim2)
   {
-	  ssd1306_Fill(Black);
-	  for(int i = 0; i < HALF_FFT_LEN; i++)
-	  {
-	  	buffer[i] = 64*buffer[i]/max;
-	  	ssd1306_Line(i, 64-buffer[i], i, 64, White);
-	  }
-	  ssd1306_UpdateScreen();
+	  //start sampling timer
+	  HAL_TIM_Base_Start(&htim3);
   }
 }
-*/
+
 /* USER CODE END 4 */
 
 /**
