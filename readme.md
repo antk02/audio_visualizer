@@ -2,7 +2,21 @@
 
 Simple STM32 based audio spectrum visualizer that uses audio jack connection.
 
-[tu będą zdjęcia i filmik]
+Video showing a response for 20 Hz - 20 kHz frequency sweep.
+
+<figure class="video_container">
+  <video controls="true" allowfullscreen="true">
+    <source src="doc/audio_spectrum.mp4" type="video/mp4">
+  </video>
+</figure>
+
+
+
+![Semantic description of image](doc/projekt1.jpg "Project 1")
+
+![Semantic description of image](doc/projekt2.jpg "Project 2")
+
+
 
 ## Specification
 
@@ -26,7 +40,11 @@ The data from ADC is used to calculate FFT (Fast Fourier Transform). The result 
 
 ### Block diagram
 
-[to do]
+Vdd = 3.3 V
+
+STM32 is powered via USB.
+
+![Semantic description of image](doc/block_diagram.png "Block diagram")
 
 ## Software
 
