@@ -12,9 +12,9 @@ Video showing a response for 20 Hz - 20 kHz frequency sweep.
 
 
 
-![Semantic description of image](doc/projekt1.jpg "Project 1")
+![Semantic description of image](doc/projekt1.JPG "Project 1")
 
-![Semantic description of image](doc/projekt2.jpg "Project 2")
+![Semantic description of image](doc/projekt2.JPG "Project 2")
 
 
 
