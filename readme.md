@@ -6,12 +6,7 @@ Video showing a response for 20 Hz - 20 kHz frequency sweep.
 
 
 
-<figure class="video_container">
-  <video controls="true" allowfullscreen="true">
-    <source src="doc/audio_spectrum.mp4" type="video/mp4">
-  </video>
-</figure>
-
+![Audio spectrum](doc/audio_spectrum.mp4)
 
 
 
