@@ -22,13 +22,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "String.h"
-#include "stm32_fix_fft.h"
 #include <stdint.h>
-
+#include "stm32_fix_fft.h"
 #include "ssd1306.h"
-
-
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -66,15 +62,11 @@ UART_HandleTypeDef huart2;
 int16_t adc_data[FFT_LEN] = {0};
 int16_t data[FFT_LEN] = {0};
 int16_t buffer[FFT_LEN] = {0};
-//uint8_t uart_message[32] = {0};
 
-int16_t real[FFT_LEN] = {0};
 int16_t imag[FFT_LEN] = {0};
 
 uint16_t max = 0;
 uint16_t index_max = 0;
-
-//char text[16];
 
 uint32_t sum = 0;
 uint16_t mean = 0;
@@ -93,7 +85,6 @@ static void MX_I2C1_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
-void UART2_Print(uint8_t* uart_message);
 double sqrt(double arg);
 /* USER CODE END PFP */
 
@@ -144,7 +135,7 @@ int main(void)
   //starting timer which triggerssampling timer (TIM3)
   HAL_TIM_Base_Start_IT(&htim2);
   //connecting adc data to buffer via dma
-  HAL_ADC_Start_DMA(&hadc1, (int16_t*) adc_data, FFT_LEN);
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t*) adc_data, FFT_LEN);
   //waiting for peripherals initialization
   HAL_Delay(10);
 
@@ -186,14 +177,14 @@ int main(void)
 		//computing absolute value of fft result and searching for max value
 		for(int i = 0; i < HALF_FFT_LEN; i++)
 		{
-			buffer[i] = sqrt(buffer[i] * buffer[i] + imag[i] * imag[i]);
+			buffer[i] = (int16_t)sqrt(buffer[i] * buffer[i] + imag[i] * imag[i]);
 			if (buffer[i] > max) max = buffer[i];
 		}
 		//normalizing results to the max value and writing it to screen memory
 		for(int i = 0; i < HALF_FFT_LEN; i++)
 		{
-			buffer[i] = 64*buffer[i]/max;
-			ssd1306_Line(i, 64-buffer[i], i, 64, White);
+			buffer[i] = 32*buffer[i]/max;
+			ssd1306_Line(i, 32-buffer[i], i, 32, White);
 		}
 		//displaying
 		ssd1306_UpdateScreen();
@@ -507,13 +498,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void UART2_Print(uint8_t* uart_message)
-{
-
-	HAL_UART_Transmit(&huart2, uart_message, strlen((char*)uart_message), UART_TIMEOUT);
-
-}
-
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
 	//set interrupt flag
