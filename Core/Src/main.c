@@ -24,7 +24,9 @@
 /* USER CODE BEGIN Includes */
 #include <stdint.h>
 #include "stm32_fix_fft.h"
-#include "ssd1306.h"
+//#include "ssd1306.h"
+//#include "ssd1306_tests.h"
+#include "lib_ssd1306.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -129,7 +131,7 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   //initializing display
-  ssd1306_Init();
+  ssd1306_setup();
   //waiting for display initialization
   HAL_Delay(10);
   //starting timer which triggerssampling timer (TIM3)
@@ -138,24 +140,19 @@ int main(void)
   HAL_ADC_Start_DMA(&hadc1, (uint32_t*) adc_data, FFT_LEN);
   //waiting for peripherals initialization
   HAL_Delay(10);
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
-	//ssd1306_TestAll();
-
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
 	if(interrupt_flag)
 	{
 		//clear screen
-		ssd1306_Fill(Black);
+		ssd1306_clear();
 
 		max = 0;
 		sum = 0;
@@ -184,10 +181,10 @@ int main(void)
 		for(int i = 0; i < HALF_FFT_LEN; i++)
 		{
 			buffer[i] = 32*buffer[i]/max;
-			ssd1306_Line(i, 32-buffer[i], i, 32, White);
+			ssd1306_line(i, 32-buffer[i]);
 		}
 		//displaying
-		ssd1306_UpdateScreen();
+		ssd1306_update();
 		//stop sampling timer
 		HAL_TIM_Base_Stop(&htim3);
 		//clearing interrupt flag
@@ -342,7 +339,7 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 63999;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 199;
+  htim2.Init.Period = 32;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
