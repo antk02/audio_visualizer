@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdint.h>
+#include <string.h>
 #include "stm32_fix_fft.h"
 //#include "ssd1306.h"
 //#include "ssd1306_tests.h"
@@ -41,6 +42,8 @@
 #define LOG_2_FFT_LEN (uint32_t)8
 #define UART_TIMEOUT (uint32_t)30 //timeout duration
 #define WAITING_TIME (uint32_t)10
+
+#define UART_SEND
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -58,12 +61,14 @@ TIM_HandleTypeDef htim2;
 TIM_HandleTypeDef htim3;
 
 UART_HandleTypeDef huart2;
+DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
 
 int16_t adc_data[FFT_LEN] = {0};
 int16_t data[FFT_LEN] = {0};
 int16_t buffer[FFT_LEN] = {0};
+//char uart_buffer[FFT_LEN] = {0};
 
 int16_t imag[FFT_LEN] = {0};
 
@@ -74,6 +79,8 @@ uint32_t sum = 0;
 uint16_t mean = 0;
 
 uint32_t interrupt_flag = 0;
+
+uint8_t text[10];
 
 /* USER CODE END PV */
 
@@ -88,6 +95,7 @@ static void MX_TIM3_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 double sqrt(double arg);
+int sprintf(char* str, const char* format, ...);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -187,6 +195,16 @@ int main(void)
 		ssd1306_update();
 		//stop sampling timer
 		HAL_TIM_Base_Stop(&htim3);
+
+		//send uart data
+		#ifdef UART_SEND
+		for(int i = 0; i < HALF_FFT_LEN; i++)
+		{
+			sprintf((char*)text, (char*)"%d,", buffer[i]);
+			HAL_UART_Transmit(&huart2, text, strlen((char*) text), 30);
+		}
+		HAL_UART_Transmit(&huart2, (uint8_t*) "\n", 1, 30);
+		#endif
 		//clearing interrupt flag
 		interrupt_flag = 0;
 	}
@@ -428,7 +446,7 @@ static void MX_USART2_UART_Init(void)
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
-  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.Mode = UART_MODE_TX;
   huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart2.Init.OverSampling = UART_OVERSAMPLING_16;
   if (HAL_UART_Init(&huart2) != HAL_OK)
@@ -454,6 +472,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+  /* DMA1_Channel7_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel7_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel7_IRQn);
 
 }
 
