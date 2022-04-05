@@ -40,8 +40,9 @@
 #define FFT_LEN (uint32_t)256
 #define HALF_FFT_LEN (uint32_t)128
 #define LOG_2_FFT_LEN (uint32_t)8
-#define UART_TIMEOUT (uint32_t)30 //timeout duration
+#define UART_TIMEOUT (uint32_t)10 //timeout duration
 #define WAITING_TIME (uint32_t)10
+//#define COM_START_CHAR (uint8_t)'F'
 
 #define UART_SEND
 /* USER CODE END PD */
@@ -68,12 +69,10 @@ DMA_HandleTypeDef hdma_usart2_tx;
 int16_t adc_data[FFT_LEN] = {0};
 int16_t data[FFT_LEN] = {0};
 int16_t buffer[FFT_LEN] = {0};
-//char uart_buffer[FFT_LEN] = {0};
 
 int16_t imag[FFT_LEN] = {0};
 
 uint16_t max = 0;
-uint16_t index_max = 0;
 
 uint32_t sum = 0;
 uint16_t mean = 0;
@@ -198,13 +197,13 @@ int main(void)
 
 		//send uart data
 		#ifdef UART_SEND
-		HAL_UART_Transmit(&huart2, (uint8_t*) "F", 1, 10);
+		HAL_UART_Transmit(&huart2, (uint8_t*) "F", 1, UART_TIMEOUT);
 		for(int i = 0; i < HALF_FFT_LEN; i++)
 		{
 			sprintf((char*)text, (char*)"%d,", buffer[i]);
-			HAL_UART_Transmit(&huart2, text, strlen((char*) text), 10);
+			HAL_UART_Transmit(&huart2, text, strlen((char*) text), UART_TIMEOUT);
 		}
-		HAL_UART_Transmit(&huart2, (uint8_t*) "\n", 1, 10);
+		HAL_UART_Transmit(&huart2, (uint8_t*) "\n", 1, UART_TIMEOUT);
 		#endif
 		//clearing interrupt flag
 		interrupt_flag = 0;
