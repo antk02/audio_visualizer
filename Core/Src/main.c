@@ -176,10 +176,22 @@ int main(void)
 		{
 			buffer[i] -= mean;
 		}
+
+		//send uart data
+		#ifdef UART_SEND
+		HAL_UART_Transmit(&huart2, (uint8_t*) "F", 1, UART_TIMEOUT);
+		for(int i = 0; i < FFT_LEN; i++)
+		{
+			sprintf((char*)text, (char*)"%d,", buffer[i]);
+			HAL_UART_Transmit(&huart2, text, strlen((char*) text), UART_TIMEOUT);
+		}
+		HAL_UART_Transmit(&huart2, (uint8_t*) "\n", 1, UART_TIMEOUT);
+		#endif
+
 		//computing fft
 		fix_fft(buffer, imag, LOG_2_FFT_LEN, 0);
 		//computing absolute value of fft result and searching for max value
-		for(int i = 0; i < HALF_FFT_LEN; i++)
+		for(int i = 0; i < FFT_LEN; i++)
 		{
 			buffer[i] = (int16_t)sqrt(buffer[i] * buffer[i] + imag[i] * imag[i]);
 			if (buffer[i] > max) max = buffer[i];
@@ -195,16 +207,7 @@ int main(void)
 		//stop sampling timer
 		HAL_TIM_Base_Stop(&htim3);
 
-		//send uart data
-		#ifdef UART_SEND
-		HAL_UART_Transmit(&huart2, (uint8_t*) "F", 1, UART_TIMEOUT);
-		for(int i = 0; i < HALF_FFT_LEN; i++)
-		{
-			sprintf((char*)text, (char*)"%d,", buffer[i]);
-			HAL_UART_Transmit(&huart2, text, strlen((char*) text), UART_TIMEOUT);
-		}
-		HAL_UART_Transmit(&huart2, (uint8_t*) "\n", 1, UART_TIMEOUT);
-		#endif
+
 		//clearing interrupt flag
 		interrupt_flag = 0;
 	}
